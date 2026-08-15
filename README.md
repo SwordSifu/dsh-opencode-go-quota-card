@@ -1,8 +1,8 @@
 # dsh-opencode-go-quota-card
 
-DeepSeek Harness (DSH) Web GUI 动态 Cordis 插件:在**会话输入框下方**显示一张 **OpenCode Go 套餐额度卡片**,展示 5 小时滚动 / 周 / 月三个窗口的用量,并**定期自动刷新**(默认每 5 分钟),支持手动刷新。
+DeepSeek Harness (DSH) Web GUI 插件:在**会话输入框下方**显示一张 **OpenCode Go 套餐额度卡片**,展示 5 小时滚动 / 周 / 月三个窗口的用量,并**定期自动刷新**(默认每 5 分钟),支持手动刷新。
 
-> A dynamic Cordis plugin for the DeepSeek Harness web GUI: a quota card for your OpenCode Go subscription (5h rolling / weekly / monthly windows), auto-refreshed every 5 minutes by default.
+> A DSH web plugin: a quota card for your OpenCode Go subscription (5h rolling / weekly / monthly windows), auto-refreshed every 5 minutes by default.
 
 ## 卡片效果
 
@@ -39,27 +39,54 @@ Authorization: Bearer sk-opencode-…
 }
 ```
 
-## 安装
+## 安装(常驻,推荐)
 
-该插件以 **DSH 动态 Cordis 插件**方式运行(定义于当前会话,无需改配置文件、无需重启):
+该插件是 **DSH web profile 文件式插件**:安装后随 DSH 启动加载,**重启不丢失**。
 
-1. 在 DSH Web GUI 的会话中,让 Agent 用 `cordis_define` 注册插件:
-   - `code.host` ← 粘贴 [`src/host.js`](src/host.js) 的内容
-   - `code.client` ← 粘贴 [`src/client.js`](src/client.js) 的内容
-2. 用 `cordis_run` 激活,并在运行卡片上批准(单勾即可)
-3. 打开任意会话,输入框下方即出现额度卡片
+1. 把本包安装进 web profile:
 
-> 说明:动态插件代码运行在 DSH Host 进程的受限沙箱中(无 `fetch`/`require`),因此 Host 端通过 `ctx.shell` 执行 `curl` 拉取数据(显式声明 `danger-full-access` 策略,仅访问这一个 URL);若 `curl` 失败会自动改用 `node -e`(Node 内置 fetch)重试。
+   ```sh
+   dsh plugin --profile web add github:SwordSifu/dsh-opencode-go-quota-card
+   ```
+
+   或手动复制:将本仓库(`index.js`、`client.js`、`typert.host.js`、`package.json`)放入
+   `$DSH_HOME/profiles/web/node_modules/dsh-opencode-go-quota-card/`。
+
+2. 在 `$DSH_HOME/profiles/web/cordis.patch.yml` 追加注册行:
+
+   ```yaml
+   - insert:
+       - id: opencode-go-quota-card
+         name: dsh-opencode-go-quota-card
+   ```
+
+3. 重启 `dsh web`(或 DSH Desktop),打开任意会话,输入框下方即出现额度卡片。
+
+## 以动态插件方式运行(临时)
+
+`src/host.js` 与 `src/client.js` 是**动态 Cordis 插件**版本(仅当前进程有效,重启消失,
+适合快速试用):在会话中用 `cordis_define` 注册,`code.host` 粘贴 `src/host.js`、
+`code.client` 粘贴 `src/client.js`,再用 `cordis_run` 激活并在运行卡片上批准。
 
 ## 配置
 
-Host 端 `apply(ctx, config)` 接受以下可选项:
+Host 端 `OpencodeQuotaGateway` 的 `Config`(zod 模式,可在 patch 行的 `config:` 中覆盖):
 
 | 键 | 默认值 | 说明 |
 | --- | --- | --- |
 | `baseUrl` | `https://opencode.ai/zen/go/v1/usage` | 用量接口地址 |
 | `timeoutMs` | `15000` | 请求超时(毫秒) |
 | `refreshMs` | `300000` | 自动刷新间隔(毫秒) |
+
+例如:
+
+```yaml
+- insert:
+    - id: opencode-go-quota-card
+      name: dsh-opencode-go-quota-card
+      config:
+        refreshMs: 600000
+```
 
 ## API 密钥
 
@@ -73,10 +100,10 @@ Host 端 `apply(ctx, config)` 接受以下可选项:
 | --- | --- | --- |
 | `no-key` | 未配置 OPENCODE_GO_API_KEY | 凭据服务未解析到密钥 |
 | `unauthorized` | 密钥无效 (401) | 接口返回 401/403 |
-| `network` | 网络请求失败 | curl 与 node 均失败(附退出码与 stderr 详情) |
-| `timeout` | 请求超时 | 超过 `timeoutMs` |
-| `denied` | 执行被沙箱拒绝 | shell 执行被沙箱拦截 |
-| `bad-json` / `bad-response` | 响应解析失败 / 接口无响应 | 响应异常 |
+| `network` | 网络请求失败 | fetch 异常(附错误详情) |
+| `http-*` | 接口返回异常 | 非 2xx 状态码 |
+| `bad-json` | 响应解析失败 | 响应不是合法 JSON |
+| `exception` | 内部错误 | 未预期异常(附详情) |
 
 ## License
 
