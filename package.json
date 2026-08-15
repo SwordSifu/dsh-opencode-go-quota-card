@@ -1,7 +1,39 @@
 {
   "name": "dsh-opencode-go-quota-card",
-  "version": "1.0.0",
-  "description": "DeepSeek Harness (DSH) 动态 Cordis 插件:在 Web GUI 输入框下方显示 OpenCode Go 套餐额度卡片(5小时滚动/周/月),定期自动刷新。A DSH plugin showing an OpenCode Go quota card that refreshes periodically.",
+  "version": "1.1.0",
+  "description": "DeepSeek Harness (DSH) web 插件:在会话输入框下方显示 OpenCode Go 套餐额度卡片(5小时滚动/周/月),定期自动刷新。A DSH web plugin showing an OpenCode Go quota card that refreshes periodically.",
+  "type": "module",
+  "main": "./index.js",
+  "files": [
+    "index.js",
+    "client.js",
+    "typert.host.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./typert": "./typert.host.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ],
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/schemastery": "^3.18.1",
+    "@deepseek-ai/dsh-typert-protocol": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-credentials": "^0.1.0-rc.6"
+  },
   "keywords": [
     "dsh",
     "deepseek-harness",
